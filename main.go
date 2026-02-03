@@ -1134,7 +1134,13 @@ func testSocks5Proxy(ctx context.Context, proxyAddr string, a Auth, timeout time
 
 	tr := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			conn, err := dialer.Dial(network, addr)
+			var conn net.Conn
+			var err error
+			if cd, ok := dialer.(proxy.ContextDialer); ok {
+				conn, err = cd.DialContext(ctx, network, addr)
+			} else {
+				conn, err = dialer.Dial(network, addr)
+			}
 			if err != nil {
 				return nil, err
 			}
