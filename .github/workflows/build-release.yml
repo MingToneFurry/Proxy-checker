@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build Windows AMD64
+        run: |
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -o proxy-checker-windows-amd64.exe .
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+
+      - name: Build Linux AMD64
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -ldflags="-s -w" -o proxy-checker-linux-amd64 .
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+
+      - name: Build Linux ARM64
+        run: |
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -v -ldflags="-s -w" -o proxy-checker-linux-arm64 .
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: 0
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows AMD64
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./proxy-checker-windows-amd64.exe
+          asset_name: proxy-checker-windows-amd64.exe
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux AMD64
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./proxy-checker-linux-amd64
+          asset_name: proxy-checker-linux-amd64
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux ARM64
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./proxy-checker-linux-arm64
+          asset_name: proxy-checker-linux-arm64
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
